@@ -1,6 +1,8 @@
 # payments_api_project
 
-my API REST project
+Bank payments REST API project.
+
+This is a little PoC in python to test sending payments data over a REST endpoint that persists payments transactions to a postgres data store.
 
 ## Quick start after downloading
 
