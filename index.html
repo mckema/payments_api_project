@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payments API</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d2e;
+      --surface2: #222540;
+      --border: #2e3150;
+      --accent: #5b6af0;
+      --accent-hover: #6e7cf5;
+      --accent-dim: rgba(91,106,240,.15);
+      --success: #22c55e;
+      --success-dim: rgba(34,197,94,.12);
+      --error: #f87171;
+      --error-dim: rgba(248,113,113,.12);
+      --warning: #fbbf24;
+      --text: #e2e8f0;
+      --text-muted: #7c85a0;
+      --text-dim: #4a5168;
+      --radius: 10px;
+      --shadow: 0 4px 24px rgba(0,0,0,.4);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+    }
+
+    .logo svg { width: 18px; height: 18px; }
+
+    header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: .3px;
+    }
+
+    .badge {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid rgba(91,106,240,.3);
+    }
+
+    /* ── Layout ── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 0;
+      height: calc(100vh - 60px);
+    }
+
+    /* ── Sidebar (form) ── */
+    .sidebar {
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .sidebar h2 {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+    }
+
+    /* ── Form ── */
+    .form-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: .3px;
+    }
+
+    input, select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 14px;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+      width: 100%;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    input::placeholder { color: var(--text-dim); }
+
+    select option { background: var(--surface2); }
+
+    .btn-submit {
+      width: 100%;
+      padding: 11px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-submit:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-submit:active:not(:disabled) { transform: scale(.98); }
+    .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── API URL bar ── */
+    .api-url {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .method-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-dim);
+      padding: 2px 7px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .api-url input {
+      border: none;
+      background: transparent;
+      padding: 0;
+      font-size: 13px;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    .api-url input:focus { box-shadow: none; border: none; }
+
+    /* ── Right panel ── */
+    .panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      gap: 4px;
+    }
+
+    .tab {
+      padding: 14px 16px 13px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+
+    .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+    .tab:hover:not(.active) { color: var(--text); }
+
+    .panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    /* ── Response card ── */
+    .response-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 12px;
+      color: var(--text-muted);
+    }
+
+    .response-empty svg { opacity: .3; }
+    .response-empty p { font-size: 14px; }
+
+    .response-card {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .status-bar.success { background: var(--success-dim); color: var(--success); border: 1px solid rgba(34,197,94,.2); }
+    .status-bar.error   { background: var(--error-dim);   color: var(--error);   border: 1px solid rgba(248,113,113,.2); }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .success .status-dot { background: var(--success); }
+    .error   .status-dot { background: var(--error); }
+
+    .res-section h3 {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .kv-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .kv {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .kv-key { color: var(--text-muted); flex-shrink: 0; }
+
+    .kv-val {
+      color: var(--text);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      text-align: right;
+      word-break: break-all;
+    }
+
+    .kv-val.pill {
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .pill-received { background: var(--accent-dim); color: var(--accent); }
+
+    pre.json-block {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      overflow-x: auto;
+      color: var(--text);
+      white-space: pre-wrap;
+    }
+
+    .json-key   { color: #7dd3fc; }
+    .json-str   { color: #86efac; }
+    .json-num   { color: #fca5a5; }
+    .json-bool  { color: #c4b5fd; }
+    .json-null  { color: var(--text-muted); }
+
+    /* ── History ── */
+    .history-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .history-item {
+      padding: 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 4px 12px;
+    }
+
+    .history-item:hover { border-color: var(--accent); background: var(--surface); }
+
+    .history-item .hi-id {
+      font-size: 12px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: var(--text-muted);
+      grid-column: 1 / -1;
+    }
+
+    .history-item .hi-amount {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .history-item .hi-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: right;
+      align-self: start;
+    }
+
+    .history-item .hi-ref {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .history-item .hi-status {
+      font-size: 11px;
+      font-weight: 600;
+      align-self: center;
+    }
+
+    .history-item .hi-status.ok { color: var(--success); }
+    .history-item .hi-status.fail { color: var(--error); }
+
+    .history-empty {
+      text-align: center;
+      padding: 60px 0;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .btn-clear {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+    }
+
+    .btn-clear:hover { color: var(--error); border-color: var(--error); }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .panel-header h2 {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+    }
+
+    /* ── Schema tab ── */
+    .schema-block {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .schema-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .schema-row {
+      display: grid;
+      grid-template-columns: 140px 80px 1fr;
+      gap: 8px;
+      align-items: baseline;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .schema-row:last-child { border-bottom: none; }
+
+    .schema-field { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: #7dd3fc; }
+    .schema-type  { color: #c4b5fd; font-size: 12px; }
+    .schema-desc  { color: var(--text-muted); font-size: 12px; }
+
+    .schema-section {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 18px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .2s, transform .2s;
+      pointer-events: none;
+      z-index: 999;
+      max-width: 320px;
+    }
+
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.success { background: var(--success); color: #fff; }
+    #toast.error   { background: var(--error);   color: #fff; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2"/>
+      <line x1="2" y1="10" x2="22" y2="10"/>
+    </svg>
+  </div>
+  <h1>Payments API</h1>
+  <span class="badge">v1.0 · PoC</span>
+</header>
+
+<main>
+  <!-- ── Left sidebar: payment form ── -->
+  <aside class="sidebar">
+    <h2>New Payment</h2>
+
+    <!-- API URL bar -->
+    <div class="api-url">
+      <span class="method-tag">POST</span>
+      <input id="apiBase" type="text" value="http://localhost:8000" placeholder="http://localhost:8000" />
+      <span style="color:var(--text-dim);font-size:13px;">/payments</span>
+    </div>
+
+    <form id="paymentForm" class="form-grid" autocomplete="off">
+      <div class="field">
+        <label for="payment_id">Payment ID</label>
+        <input id="payment_id" type="text" placeholder="PAY-001" required />
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label for="debtor_account">Debtor Account</label>
+          <input id="debtor_account" type="text" placeholder="ACC-1234" required />
+        </div>
+        <div class="field">
+          <label for="creditor_account">Creditor Account</label>
+          <input id="creditor_account" type="text" placeholder="ACC-5678" required />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label for="amount">Amount</label>
+          <input id="amount" type="number" step="0.01" min="0.01" placeholder="1000.00" required />
+        </div>
+        <div class="field">
+          <label for="currency">Currency</label>
+          <select id="currency" required>
+            <option value="USD">USD</option>
+            <option value="CAD">CAD</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label for="payment_type">Payment Type</label>
+          <select id="payment_type" required>
+            <option value="DOMESTIC">DOMESTIC</option>
+            <option value="NOSTRO_FUNDING">NOSTRO_FUNDING</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="value_date">Value Date</label>
+          <input id="value_date" type="date" required />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="reference">Reference</label>
+        <input id="reference" type="text" placeholder="Invoice #INV-2026-001" required />
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">
+        <span id="btnSpinner" class="spinner"></span>
+        <span id="btnLabel">Submit Payment</span>
+      </button>
+    </form>
+  </aside>
+
+  <!-- ── Right panel: response + history + schema ── -->
+  <section class="panel">
+    <nav class="panel-tabs">
+      <div class="tab active" data-tab="response">Response</div>
+      <div class="tab" data-tab="history">History</div>
+      <div class="tab" data-tab="schema">Schema</div>
+    </nav>
+
+    <!-- Response tab -->
+    <div class="panel-content" id="tab-response">
+      <div class="response-empty" id="emptyState">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 12h6m-3-3v6M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p>Submit a payment to see the response</p>
+      </div>
+      <div class="response-card" id="responseCard" style="display:none;"></div>
+    </div>
+
+    <!-- History tab -->
+    <div class="panel-content" id="tab-history" style="display:none;">
+      <div class="panel-header">
+        <h2>Transaction History</h2>
+        <button class="btn-clear" id="clearHistory">Clear</button>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="history-empty">No transactions yet</div>
+      </div>
+    </div>
+
+    <!-- Schema tab -->
+    <div class="panel-content" id="tab-schema" style="display:none;">
+      <div class="schema-block">
+        <div class="schema-section">
+          <div class="schema-title">POST /payments — Request Body</div>
+          <div class="schema-row">
+            <span class="schema-field">payment_id</span>
+            <span class="schema-type">string</span>
+            <span class="schema-desc">Unique external payment identifier</span>
+          </div>
+          <div class="schema-row">
+            <span class="schema-field">debtor_account</span>
+            <span class="schema-type">string</span>
+            <span class="schema-desc">Account sending the payment</span>
+          </div>
+          <div class="schema-row">
+            <span class="schema-field">creditor_account</span>
+            <span class="schema-type">string</span>
+            <span class="schema-desc">Account receiving the payment</span>
+          </div>
+          <div class="schema-row">
+            <span class="schema-field">currency</span>
+            <span class="schema-type">enum</span>
+            <span class="schema-desc">USD · CAD · EUR</span>
+          </div>
+          <div class="schema-row">
+            <span class="schema-field">amount</span>
+            <span class="schema-type">decimal</span>
+            <span class="schema-desc">Must be &gt; 0</span>
+          </div>
+          <div class="schema-row">
+            <span class="schema-field">value_date</span>
+            <span class="schema-type">date</span>
+            <span class="schema-desc">ISO 8601 (YYYY-MM-DD)</span>
+          </div>
+          <div class="schema-row">
+            <span class="schema-field">payment_type</span>
+            <span class="schema-type">enum</span>
+            <span class="schema-desc">DOMESTIC · NOSTRO_FUNDING</span>
+          </div>
+          <div class="schema-row">
+            <span class="schema-field">reference</span>
+            <span class="schema-type">string</span>
+            <span class="schema-desc">Free-text payment reference</span>
+          </div>
+        </div>
+
+        <div class="schema-section">
+          <div class="schema-title">POST /payments — Response (201)</div>
+          <div class="schema-row">
+            <span class="schema-field">transaction_id</span>
+            <span class="schema-type">UUID</span>
+            <span class="schema-desc">Auto-generated transaction identifier</span>
+          </div>
+          <div class="schema-row">
+            <span class="schema-field">status</span>
+            <span class="schema-type">string</span>
+            <span class="schema-desc">Initial status: RECEIVED</span>
+          </div>
+        </div>
+
+        <div class="schema-section">
+          <div class="schema-title">GET /docs</div>
+          <div style="font-size:13px;color:var(--text-muted);">
+            Interactive Swagger UI — auto-generated by FastAPI.
+            <br/><br/>
+            Open <code style="color:var(--accent);">http://localhost:8000/docs</code> when the server is running.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script>
+  // ── Tab switching ──────────────────────────────────────────────────────────
+  const tabs = document.querySelectorAll('.tab');
+  const tabContents = {
+    response: document.getElementById('tab-response'),
+    history:  document.getElementById('tab-history'),
+    schema:   document.getElementById('tab-schema'),
+  };
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const key = tab.dataset.tab;
+      Object.entries(tabContents).forEach(([k, el]) => {
+        el.style.display = k === key ? '' : 'none';
+      });
+    });
+  });
+
+  // ── Default value date to today ────────────────────────────────────────────
+  document.getElementById('value_date').value = new Date().toISOString().slice(0, 10);
+
+  // ── Toast ──────────────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg, type = 'success') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `show ${type}`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+  }
+
+  // ── History (localStorage) ─────────────────────────────────────────────────
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem('pay_history') || '[]'); }
+    catch { return []; }
+  }
+
+  function saveHistory(h) {
+    localStorage.setItem('pay_history', JSON.stringify(h.slice(0, 50)));
+  }
+
+  function formatTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
+           ' · ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+
+  function renderHistory() {
+    const list = document.getElementById('historyList');
+    const h = loadHistory();
+    if (!h.length) {
+      list.innerHTML = '<div class="history-empty">No transactions yet</div>';
+      return;
+    }
+    list.innerHTML = h.map((item, i) => `
+      <div class="history-item" data-index="${i}">
+        <span class="hi-id">${item.ok ? item.res.transaction_id : 'Error'}</span>
+        <span class="hi-amount">${item.req.currency} ${Number(item.req.amount).toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+        <span class="hi-time">${formatTime(item.ts)}</span>
+        <span class="hi-ref">${item.req.reference}</span>
+        <span class="hi-status ${item.ok ? 'ok' : 'fail'}">${item.ok ? item.res.status : 'FAILED'}</span>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.history-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const item = loadHistory()[el.dataset.index];
+        if (item) showResponse(item.ok, item.res, item.req, item.code);
+        // Switch to response tab
+        tabs.forEach(t => t.classList.remove('active'));
+        document.querySelector('[data-tab="response"]').classList.add('active');
+        Object.entries(tabContents).forEach(([k, cont]) => {
+          cont.style.display = k === 'response' ? '' : 'none';
+        });
+      });
+    });
+  }
+
+  document.getElementById('clearHistory').addEventListener('click', () => {
+    localStorage.removeItem('pay_history');
+    renderHistory();
+  });
+
+  renderHistory();
+
+  // ── Syntax-highlight JSON ──────────────────────────────────────────────────
+  function colorize(obj) {
+    const raw = JSON.stringify(obj, null, 2);
+    return raw.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+      if (/^"/.test(m)) {
+        if (/:$/.test(m)) return `<span class="json-key">${m}</span>`;
+        return `<span class="json-str">${m}</span>`;
+      }
+      if (/true|false/.test(m)) return `<span class="json-bool">${m}</span>`;
+      if (/null/.test(m)) return `<span class="json-null">${m}</span>`;
+      return `<span class="json-num">${m}</span>`;
+    });
+  }
+
+  // ── Render response ────────────────────────────────────────────────────────
+  function showResponse(ok, data, req, statusCode) {
+    document.getElementById('emptyState').style.display = 'none';
+    const card = document.getElementById('responseCard');
+    card.style.display = 'flex';
+
+    const statusLabel = ok
+      ? `${statusCode ?? 201} Created`
+      : `${statusCode ?? 'Error'}`;
+
+    card.innerHTML = `
+      <div class="status-bar ${ok ? 'success' : 'error'}">
+        <span class="status-dot"></span>
+        ${statusLabel}
+      </div>
+
+      ${ok ? `
+      <div class="res-section">
+        <h3>Transaction</h3>
+        <div class="kv-grid">
+          <div class="kv">
+            <span class="kv-key">transaction_id</span>
+            <span class="kv-val">${data.transaction_id}</span>
+          </div>
+          <div class="kv">
+            <span class="kv-key">status</span>
+            <span class="kv-val pill pill-received">${data.status}</span>
+          </div>
+        </div>
+      </div>
+      ` : ''}
+
+      <div class="res-section">
+        <h3>Response Body</h3>
+        <pre class="json-block">${colorize(data)}</pre>
+      </div>
+
+      ${req ? `
+      <div class="res-section">
+        <h3>Request Sent</h3>
+        <pre class="json-block">${colorize(req)}</pre>
+      </div>
+      ` : ''}
+    `;
+  }
+
+  // ── Form submission ────────────────────────────────────────────────────────
+  document.getElementById('paymentForm').addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const btn     = document.getElementById('submitBtn');
+    const spinner = document.getElementById('btnSpinner');
+    const label   = document.getElementById('btnLabel');
+
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    label.textContent = 'Submitting…';
+
+    const base = document.getElementById('apiBase').value.replace(/\/$/, '');
+
+    const payload = {
+      payment_id:       document.getElementById('payment_id').value.trim(),
+      debtor_account:   document.getElementById('debtor_account').value.trim(),
+      creditor_account: document.getElementById('creditor_account').value.trim(),
+      currency:         document.getElementById('currency').value,
+      amount:           parseFloat(document.getElementById('amount').value),
+      value_date:       document.getElementById('value_date').value,
+      payment_type:     document.getElementById('payment_type').value,
+      reference:        document.getElementById('reference').value.trim(),
+    };
+
+    let ok = false, data, statusCode;
+
+    try {
+      const res = await fetch(`${base}/payments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      statusCode = res.status;
+      data = await res.json();
+      ok = res.ok;
+
+      if (ok) showToast('Payment submitted successfully', 'success');
+      else     showToast(data?.detail ?? 'Request failed', 'error');
+
+    } catch (err) {
+      data = { error: err.message };
+      showToast('Could not reach the API', 'error');
+    }
+
+    showResponse(ok, data, payload, statusCode);
+
+    // Save to history
+    const h = loadHistory();
+    h.unshift({ ok, res: data, req: payload, code: statusCode, ts: new Date().toISOString() });
+    saveHistory(h);
+    renderHistory();
+
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    label.textContent = 'Submit Payment';
+  });
+</script>
+</body>
+</html>

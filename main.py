@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from datetime import date
 
@@ -16,6 +17,10 @@ app = FastAPI(
     title="Payments Intake API",
     version="1.0"
 )
+
+@app.get("/")
+def serve_ui():
+    return FileResponse("index.html")
 
 def get_db():
     db = SessionLocal()
